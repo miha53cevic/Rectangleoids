@@ -72,7 +72,7 @@ class Renderer2D {
         this.DrawFillRectWithShadow(x, y, w, h, borderColour, shadowColour, shadowBlur);
 
         // Nacrtaj preko trenutnog pravokutnika unutarnji dio tako da dobijemo obrub
-        this.DrawFillRect(x + borderWidth, y + borderWidth, w - borderWidth, h - borderWidth, colour);
+        this.DrawFillRect(x + borderWidth, y + borderWidth, w - borderWidth * 2, h - borderWidth * 2, colour);
     }
 
     // Nacrtaj popunjen text na T(x, y)

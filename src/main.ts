@@ -5,6 +5,7 @@ function ToRadian(degrees: number) {
     return (degrees * Math.PI) / 180;
 }
 
+// Pretvori milisekunde u string format oblika 00:00:000 odnosno min:sec:milisec
 function FormatTimeToString(timerInMS: number) {
     const ms = Math.floor(timerInMS % 1000);
     const sec = Math.floor((timerInMS / 1000) % 60);
@@ -19,6 +20,7 @@ function FormatTimeToString(timerInMS: number) {
     return `${minString}:${secString}:${msString}`;
 }
 
+// Predstavlja objekte na canvasu ili ti entity
 abstract class Object {
     protected _x: number;
     protected _y: number;
@@ -97,7 +99,7 @@ class Player extends Object {
     }
 
     public Update(): void {
-        // Pomakni igrača s obzirom da pritisnute tipke
+        // Pomakni igrača s obzirom na pritisnute tipke
         if (this._pressedKeys[0]) this._x -= this._speed;
         if (this._pressedKeys[1]) this._y -= this._speed;
         if (this._pressedKeys[2]) this._x += this._speed;
@@ -108,11 +110,20 @@ class Player extends Object {
         // Nacrtaj igrača na njegovoj poziciji s time da želimo da centar pravokutnika bude njegova pozicija
         r2d.DrawFillRectWithShadow(this._x - (this._size / 2), this._y - (this._size / 2), this._size, this._size, this._playerColour, 'black', 20);
     }
+
+    // Osiguraj da igrač ako izađe iz ekrana uđe sa suprotne strane natrag nutra
+    public EnsureInBounds(canvasWidth: number, canvasHeight: number) {
+        if (this._x < 0) this._x = canvasWidth;
+        if (this._y < 0) this._y = canvasHeight;
+        if (this._x > canvasWidth) this._x = this._x % canvasWidth;
+        if (this._y > canvasHeight) this._y = this._y % canvasHeight;
+    }
 }
 
 class Asteroid extends Object {
     private _directionX: number; // jedinični vektor za pomak na x osi
     private _directionY: number; // jedinični vektor za pomak na y osi
+    private _colour: string; // nasumična nijansa asteroida
 
     constructor(x: number, y: number) {
         super(x, y);
@@ -125,21 +136,24 @@ class Asteroid extends Object {
         this._directionY = Math.sin(ToRadian(randomAngle));
 
         // Izaberi random brzinu za asteroida
-        this._speed = Math.random() * 5;
+        this._speed = Math.random() * 5; // [0, 5>
+
+        // Izaberi nijansu sive
+        const nijansaSive = Math.floor(50 + Math.random() * 150);
+        this._colour = `rgb(${nijansaSive}, ${nijansaSive}, ${nijansaSive})`;
     }
 
     public Update(): void {
         // Pomakni asteroida u njegovom smjeru
         this._x += this._directionX * this._speed;
         this._y += this._directionY * this._speed;
-
-        // TODO Limitiraj me u canvasu
     }
     public Render(r2d: Renderer2D): void {
         // Nacrtaj asteroida
-        r2d.DrawFillRectWithShadowAndBorder(this._x - (this._size / 2), this._y - (this._size / 2), this._size, this._size, 'grey', 'black', 20, 'black', 1);
+        r2d.DrawFillRectWithShadowAndBorder(this._x - (this._size / 2), this._y - (this._size / 2), this._size, this._size, this._colour, 'black', 20, 'black', 3);
     }
 
+    // Pomoćna funkcija za kada asteroid je dovoljno daleko od centra canvasa da znamo da ga smijemo obrisati
     public IsOutOfBounds(maxDistanceFromCenterOfCanvas: number, canvasCenterX: number, canvasCenterY: number) {
         const distanceFromCenter = Math.sqrt(Math.pow(this._x - canvasCenterX, 2) + Math.pow(this._y - canvasCenterY, 2));
         return distanceFromCenter > maxDistanceFromCenterOfCanvas;
@@ -167,6 +181,13 @@ class Game {
         this._ctx = this._canvas.getContext('2d') as CanvasRenderingContext2D;
 
         this.InitialiseGame();
+    }
+
+    public SetMaxBrojAsteroida(max: number) { this._maxAsteroids = max; }
+    public SetAsteroidSpawnDelay(delay: number) { 
+        this._asteroidSpawnDelay = delay 
+        if (this._asteroidSpawnDelayIntervalId) clearInterval(this._asteroidSpawnDelayIntervalId);
+        this._asteroidSpawnDelayIntervalId = setInterval(() => this._asteroids.length < this._maxAsteroids ? this.SpawnAsteroid() : undefined, 1000 * this._asteroidSpawnDelay);
     }
 
     private InitialiseGame() {
@@ -211,9 +232,11 @@ class Game {
 
     // Mjenjanje pozicije / collision / stvaranje asteroida
     private Update() {
-        this._player.Update();
+        this._player.Update(); // pomak igrača
+        this._player.EnsureInBounds(this._canvas.width, this._canvas.height); // ako igrač izlazi iz canvasa ulazi sa nasuprotne strane
+
         for (const asteroid of this._asteroids) {
-            asteroid.Update();
+            asteroid.Update(); // pomak asteroida
         }
 
         // Provjeri koliziju igrača sa asteroidima
@@ -253,10 +276,11 @@ class Game {
 
     // Crtanje po canvasu
     private Render() {
-        const r2d = new Renderer2D(this._ctx);
+        const r2d = new Renderer2D(this._ctx); // pomočna klasa za crtanje
 
         r2d.Clear('#515151');
 
+        // Nacrtaj objekte
         this._player.Render(r2d);
         for (const asteroid of this._asteroids) {
             asteroid.Render(r2d);
@@ -273,6 +297,7 @@ class Game {
         r2d.DrawFillText(`Vrijeme: ${FormatTimeToString(this._timer)}`, r2d.Width() - 32, 80, 32);
     }
 
+    // Glavna petlja igre
     private Loop() {
         // Izracunaj deltaTime (setInterval ne može raditi na 1ms, saznal na teži način)
         const currentTime = Date.now();
@@ -283,8 +308,11 @@ class Game {
         this.Update();
         this.Render();
 
-        if (this._done) this.Stop(); // Ako je igra zavrsila zaustavi
-        else this._animationFrameId = requestAnimationFrame(() => this.Loop()); // u suprotnom nastavi petlju igre
+        if (this._done) {
+            this.InitialiseGame(); // Ako je igra zavrsila samo resetiraj
+            this._done = false;
+        } 
+        this._animationFrameId = requestAnimationFrame(() => this.Loop()); // nastavi petlju igre
     }
 }
 
@@ -302,6 +330,29 @@ window.onload = function () {
     fullscreenCanvas(canvas);
     window.onresize = () => fullscreenCanvas(canvas);
 
+    // Započni igru
     const game = new Game(canvas);
     game.Start();
+
+    // Settings Dialog inicijalizacija
+    const settingsDialog = document.getElementById('settingsDialog') as HTMLDialogElement;
+
+    const settingsDialogOpenButton = document.getElementById('settingsDialogOpenButton') as HTMLButtonElement;
+    settingsDialogOpenButton.onclick = () => settingsDialog.showModal();
+
+    const settingsDialogCloseButton = document.getElementById('settingsDialogCloseButton') as HTMLButtonElement;
+    settingsDialogCloseButton.onclick = () => settingsDialog.close();
+
+    // Opcije settingsDialoga
+    const maxBrojAsteroidaOption = document.getElementById('maxBrojAsteroidaOption') as HTMLInputElement;
+    maxBrojAsteroidaOption.value = "10"; // default
+    maxBrojAsteroidaOption.addEventListener('change', () => {
+        game.SetMaxBrojAsteroida(Number.parseInt(maxBrojAsteroidaOption.value));
+    });
+
+    const asteroidSpawnIntervalOption = document.getElementById('asteroidSpawnIntervalOption') as HTMLInputElement;
+    asteroidSpawnIntervalOption.value = "5"; // default
+    asteroidSpawnIntervalOption.addEventListener('change', () => {
+        game.SetAsteroidSpawnDelay(Number.parseInt(asteroidSpawnIntervalOption.value));
+    });
 }

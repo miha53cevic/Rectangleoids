@@ -20,3 +20,47 @@ body {
 #canvas {
     background-color: #515151;
 }
+
+#settingsDialog {
+    width: 300px;
+    padding: 1rem;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+}
+
+#settingsDialog > article {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+#settingsDialog #settingsDialogHeader {
+    display: flex;
+    flex-direction: row;
+    justify-content: end;
+}
+
+#settingsDialog #settingsDialogBody {
+    display: flex;
+    flex-direction: column;
+}
+
+#settingsDialogOpenButton {
+    position: absolute;
+    bottom: 2rem;
+    right: 2rem;
+    padding: 1rem;
+}
+
+.stackOption {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}

@@ -11,7 +11,27 @@
 <body>
     <div id="app">
         <canvas id="canvas"></canvas>
+        <button id="settingsDialogOpenButton">Settings</button>
     </div>
+    <dialog id="settingsDialog">
+        <article>
+            <div id="settingsDialogHeader">
+                <button id="settingsDialogCloseButton">Zatvori</button>
+            </div>
+            <div id="settingsDialogBody">
+                <div class="stack">
+                    <div class="stackOption">
+                        <label>Max broj asteroida</label>
+                        <input id="maxBrojAsteroidaOption" type="number" />
+                    </div>
+                    <div class="stackOption">
+                        <label>Asteroid spawn interval</label>
+                        <input id="asteroidSpawnIntervalOption" type="number" />
+                    </div>
+                </div>
+            </div>
+            </artic>
+    </dialog>
     <script type="module" src="/src/main.ts"></script>
 </body>
 
