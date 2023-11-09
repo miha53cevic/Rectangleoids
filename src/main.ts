@@ -1,5 +1,6 @@
 import './global.css';
 import Renderer2D from './Renderer2D';
+import StarField from './StarField';
 
 function ToRadian(degrees: number) {
     return (degrees * Math.PI) / 180;
@@ -136,7 +137,7 @@ class Asteroid extends Object {
         this._directionY = Math.sin(ToRadian(randomAngle));
 
         // Izaberi random brzinu za asteroida
-        this._speed = Math.random() * 5; // [0, 5>
+        this._speed = Math.random() * 7; // [0, 7>
 
         // Izaberi nijansu sive
         const nijansaSive = Math.floor(50 + Math.random() * 150);
@@ -166,10 +167,11 @@ class Game {
     private _animationFrameId: number | undefined;
 
     private _asteroids: Asteroid[] = [];
-    private _maxAsteroids: number = 10;
-    private _asteroidSpawnDelay: number = 5;
+    private _maxAsteroids: number = 30;
+    private _asteroidSpawnDelay: number = 0.5;
     private _asteroidSpawnDelayIntervalId: number | undefined;
     private _player!: Player;
+    private _starfield: StarField;
 
     private _timer: number = 0;
     private _oldTime: number = Date.now();
@@ -181,6 +183,8 @@ class Game {
         this._ctx = this._canvas.getContext('2d') as CanvasRenderingContext2D;
 
         this.InitialiseGame();
+
+        this._starfield = new StarField(10, 1.01, new Renderer2D(this._ctx));
     }
 
     public SetMaxBrojAsteroida(max: number) { this._maxAsteroids = max; }
@@ -224,9 +228,15 @@ class Game {
     }
 
     private SpawnAsteroid() {
-        // TODO Stvori asteroida izvan canvasa
-        const randomX = Math.floor(Math.random() * this._canvas.width);
-        const randomY = Math.floor(Math.random() * this._canvas.height);
+        const outsideMargin = 100; // Koliko od rubova canvasa se može maks generirati asteroid
+        const sideX = Math.floor(Math.random() * 2); // Izaberi hoće li biti ljevo ili desno od canvasa
+        const sideY = Math.floor(Math.random() * 2); // Izaberi hoće li biti iznad ili ispod canvasa
+        let randomX = Math.floor(Math.random() * outsideMargin); // pomak od ruba canvasa
+        randomX = (sideX === 0) ? randomX * -1 : randomX + this._canvas.width; // ako smo ljevo od canvasa onda idemo u negativni X ako smo desno onda u canvas.width + odmak
+        let randomY = Math.floor(Math.random() * outsideMargin);
+        randomY = (sideY === 0) ? randomY * -1 : randomY + this._canvas.height;
+        //const randomX = Math.floor(Math.random() * this._canvas.width);
+        //const randomY = Math.floor(Math.random() * this._canvas.height);
         this._asteroids.push(new Asteroid(randomX, randomY));
     }
 
@@ -280,6 +290,8 @@ class Game {
 
         r2d.Clear('#515151');
 
+        this._starfield.run();
+
         // Nacrtaj objekte
         this._player.Render(r2d);
         for (const asteroid of this._asteroids) {
@@ -316,7 +328,7 @@ class Game {
     }
 }
 
-// Kada se učita DOM
+// Kada se učita DOM, početak koda
 window.onload = function () {
     function fullscreenCanvas(canvas: HTMLCanvasElement) {
         canvas.width = window.innerWidth;
@@ -345,14 +357,14 @@ window.onload = function () {
 
     // Opcije settingsDialoga
     const maxBrojAsteroidaOption = document.getElementById('maxBrojAsteroidaOption') as HTMLInputElement;
-    maxBrojAsteroidaOption.value = "10"; // default
+    maxBrojAsteroidaOption.value = "30"; // default
     maxBrojAsteroidaOption.addEventListener('change', () => {
         game.SetMaxBrojAsteroida(Number.parseInt(maxBrojAsteroidaOption.value));
     });
 
     const asteroidSpawnIntervalOption = document.getElementById('asteroidSpawnIntervalOption') as HTMLInputElement;
-    asteroidSpawnIntervalOption.value = "5"; // default
+    asteroidSpawnIntervalOption.value = "0.5"; // default
     asteroidSpawnIntervalOption.addEventListener('change', () => {
-        game.SetAsteroidSpawnDelay(Number.parseInt(asteroidSpawnIntervalOption.value));
+        game.SetAsteroidSpawnDelay(Number.parseFloat(asteroidSpawnIntervalOption.value));
     });
 }
